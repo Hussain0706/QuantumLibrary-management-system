@@ -1428,18 +1428,21 @@
     }
  
     /* ══════════════════ INIT ══════════════════ */
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', () => {
+      /* ── Load user info from session ── */
       const raw = sessionStorage.getItem('libUser') || 'student';
       const name = raw.charAt(0).toUpperCase() + raw.slice(1);
-      ['sidebarAvatar', 'profileAvatar'].forEach(id => document.getElementById(id).textContent = name[0]);
-      ['sidebarName', 'profileName'].forEach(id => document.getElementById(id).textContent = name);
-      document.getElementById('displayNameInput').value = name;
-      document.getElementById('profileSince').textContent = new Date().getFullYear();
+      ['sidebarAvatar', 'profileAvatar'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = name[0]));
+      ['sidebarName', 'profileName'].forEach(id => document.getElementById(id) && (document.getElementById(id).textContent = name));
+      document.getElementById('displayNameInput') && (document.getElementById('displayNameInput').value = name);
+      document.getElementById('profileSince') && (document.getElementById('profileSince').textContent = new Date().getFullYear());
 
       startClock();
 
-      /* Load active borrows from backend */
-      await loadBorrowsFromBackend();
+      /* ── Load borrows from localStorage (no backend needed) ── */
+      MY_BORROWED    = loadBorrowed();
+      BORROW_HISTORY = loadHistory();
+      loadBooksStatus();
       refreshAll();
 
       const pc = document.getElementById('pageContent');
@@ -1455,28 +1458,7 @@
       setTimeout(() => { wb.style.opacity = '1'; wb.style.transform = 'none'; }, 350);
     });
 
-    /* Load active borrows from real backend and sync BOOKS statuses */
-    async function loadBorrowsFromBackend() {
-      try {
-        const records = await API.borrow.myBorrows();
-        MY_BORROWED = records.map(r => ({
-          id:         r.id,                          // borrow record ID (needed for return)
-          bookId:     r.book.id,
-          borrowDate: new Date(r.borrowDate),
-          dueDate:    new Date(r.dueDate),
-        }));
-        // Sync book statuses from backend data
-        BOOKS.forEach(b => { b.status = 'available'; });
-        MY_BORROWED.forEach(e => {
-          const book = BOOKS.find(b => b.id === e.bookId);
-          if (book) book.status = 'issued';
-        });
-      } catch (err) {
-        console.warn('Backend offline — using localStorage fallback:', err.message);
-        MY_BORROWED = loadBorrowed();
-        loadBooksStatus();
-      }
-    }
+    /* ── No backend needed: borrows are stored in localStorage ── */
  
     /* ══════════════════ CLOCK ══════════════════ */
     function startClock() {
@@ -1693,42 +1675,41 @@
       openModal('borrowModal');
     }
  
-    async function confirmBorrow() {
+    function confirmBorrow() {
       const b = BOOKS.find(x => x.id === pendingId); if (!b) return;
-      // Disable button to prevent double-click
       const btn = document.getElementById('confirmBorrowBtn');
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Processing...'; }
-      try {
-        const record = await API.borrow.borrow(pendingId);
-        // Update local state from real backend response
-        b.status = 'issued';
-        MY_BORROWED.push({
-          id:         record.id,
-          bookId:     record.book.id,
-          borrowDate: new Date(record.borrowDate),
-          dueDate:    new Date(record.dueDate),
-        });
+
+      /* ── Check 3-book limit ── */
+      if (MY_BORROWED.length >= 3) {
+        if (btn) { btn.disabled = false; btn.textContent = '📚 Confirm Borrow'; }
+        closeModal('borrowModal');
+        openLimitModal();
+        return;
+      }
+
+      /* ── Static borrow (localStorage only) ── */
+      setTimeout(() => {
         const now = new Date();
+        const due = new Date(now); due.setDate(due.getDate() + 14);
+        const recordId = Date.now(); // unique ID
+
+        b.status = 'issued';
+        MY_BORROWED.push({ id: recordId, bookId: b.id, borrowDate: now, dueDate: due });
         BORROW_HISTORY.unshift({
-          id: record.id, bookId: b.id, title: b.title, author: b.author, genre: b.genre,
+          id: recordId, bookId: b.id, title: b.title, author: b.author, genre: b.genre,
           action: 'borrow',
           dateStr: now.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         });
+        saveBorrowed();
+        saveBooksStatus();
         saveHistory();
         closeModal('borrowModal'); pendingId = null;
-        refreshAll();
-        const dueLabel = new Date(record.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-        showToast(`"${b.title}" borrowed! Due: ${dueLabel}. 📧 Email sent!`, 'success');
-      } catch (err) {
-        if (err.errorCode === 'BORROW_LIMIT_REACHED') {
-          closeModal('borrowModal');
-          openLimitModal();
-        } else {
-          showToast('Borrow failed: ' + err.message, 'error');
-        }
-      } finally {
         if (btn) { btn.disabled = false; btn.textContent = '📚 Confirm Borrow'; }
-      }
+        refreshAll();
+        const dueLabel = due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        showToast(`"${b.title}" borrowed! Due: ${dueLabel} ✅`, 'success');
+      }, 500);
     }
  
     /* ══════════════════ RETURN ══════════════════ */
@@ -1740,15 +1721,15 @@
       openModal('returnModal');
     }
  
-    async function confirmReturn() {
+    function confirmReturn() {
       const b = BOOKS.find(x => x.id === pendingId); if (!b) return;
       const borrowed = MY_BORROWED.find(e => e.bookId === pendingId);
       if (!borrowed) { showToast('Borrow record not found.', 'error'); return; }
-      // Disable button to prevent double-click
       const btn = document.getElementById('confirmReturnBtn');
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Processing...'; }
-      try {
-        await API.borrow.return(borrowed.id);
+
+      /* ── Static return (localStorage only) ── */
+      setTimeout(() => {
         b.status = 'available';
         MY_BORROWED = MY_BORROWED.filter(e => e.bookId !== pendingId);
         const now = new Date();
@@ -1757,15 +1738,14 @@
           action: 'return',
           dateStr: now.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         });
+        saveBorrowed();
+        saveBooksStatus();
         saveHistory();
         closeModal('returnModal'); pendingId = null;
-        refreshAll();
-        showToast(`"${b.title}" returned! Check your email for confirmation. 📥`, 'success');
-      } catch (err) {
-        showToast('Return failed: ' + err.message, 'error');
-      } finally {
         if (btn) { btn.disabled = false; btn.textContent = '📥 Confirm Return'; }
-      }
+        refreshAll();
+        showToast(`"${b.title}" returned successfully! 📥`, 'success');
+      }, 500);
     }
  
     /* ══════════════════ MY BOOKS TABLE ══════════════════ */

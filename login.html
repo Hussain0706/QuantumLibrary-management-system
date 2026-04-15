@@ -180,8 +180,13 @@
           </button>
         </form>
 
-        <div class="demo-hint" id="demoHint">
-          🔐 Admin — <code>admin@quantumlibrary.com</code> / <code>admin123</code> &nbsp;|&nbsp; Member — <code>hussain0706w@gmail.com</code> / <code>member123</code>
+        <div class="demo-hint" id="demoHint" style="font-size:.78rem;line-height:1.8;">
+          🔐 <strong>Admin:</strong> <code>admin@quantumlibrary.com</code> / <code>admin123</code><br>
+          👤 <strong>Member 1:</strong> <code>ali@library.com</code> / <code>ali123</code><br>
+          👤 <strong>Member 2:</strong> <code>sara@library.com</code> / <code>sara123</code><br>
+          👤 <strong>Member 3:</strong> <code>john@library.com</code> / <code>john123</code><br>
+          👤 <strong>Member 4:</strong> <code>zara@library.com</code> / <code>zara123</code><br>
+          <small style="color:var(--text-muted);">💡 Double-click to auto-fill admin or member credentials</small>
         </div>
       </div>
 
@@ -207,18 +212,31 @@
 <script>
   let currentRole = 'member';
 
+  /* ═══════════════════════════════════════════════════════
+   *  STATIC ACCOUNTS — Change these as you wish!
+   *  Add/edit accounts here. No backend or internet needed.
+   *  role: 'admin'  → redirects to admin.html
+   *  role: 'member' → redirects to dashboard.html
+   * ═══════════════════════════════════════════════════════ */
+  const ACCOUNTS = [
+    { email: 'admin@quantumlibrary.com', password: 'admin123',  role: 'admin',  name: 'Admin'       },
+    { email: 'ali@library.com',          password: 'ali123',    role: 'member', name: 'Ali Ahmed'   },
+    { email: 'sara@library.com',         password: 'sara123',   role: 'member', name: 'Sara Khan'   },
+    { email: 'john@library.com',         password: 'john123',   role: 'member', name: 'John Smith'  },
+    { email: 'zara@library.com',         password: 'zara123',   role: 'member', name: 'Zara Malik'  },
+  ];
+
   /* ── Role switcher ── */
   function setRole(role) {
     currentRole = role;
     const isAdmin = role === 'admin';
-
     document.getElementById('btnMember').className = 'role-btn' + (isAdmin ? '' : ' active');
     document.getElementById('btnAdmin').className  = 'role-btn' + (isAdmin ? ' active admin-active' : '');
     document.getElementById('loginTitle').textContent    = isAdmin ? 'Admin Portal 🔐' : 'Welcome Back 👋';
     document.getElementById('loginSubtitle').textContent = isAdmin
       ? 'Sign in with your admin credentials to manage the library.'
       : 'Sign in to your library member account to continue.';
-    document.getElementById('adminBadge').style.opacity  = isAdmin ? '1' : '0';
+    document.getElementById('adminBadge').style.opacity = isAdmin ? '1' : '0';
   }
 
   /* ── Toggle password ── */
@@ -229,11 +247,13 @@
     this.textContent = isText ? '👁' : '🙈';
   });
 
-
-  /* ── Handle login — calls Spring Boot backend API ── */
-  async function handleLogin(e) {
+  /* ══════════════════════════════════════════════════════
+   *  STATIC LOGIN — No backend required!
+   *  Checks email + password against the ACCOUNTS list above.
+   * ══════════════════════════════════════════════════════ */
+  function handleLogin(e) {
     e.preventDefault();
-    const email    = document.getElementById('username').value.trim();
+    const email    = document.getElementById('username').value.trim().toLowerCase();
     const password = document.getElementById('password').value;
     const btn      = document.getElementById('loginBtn');
     const errBox   = document.getElementById('errorMsg');
@@ -243,27 +263,54 @@
     btn.disabled = true;
     addRipple(e, btn);
 
-    try {
-      // Call the real backend
-      const data = await API.auth.login(email, password);
+    // Simulate a short loading delay for UX polish
+    setTimeout(() => {
+      // Find matching account
+      const account = ACCOUNTS.find(
+        a => a.email.toLowerCase() === email && a.password === password
+      );
 
-      // data = { token, name, email, role }
-      const isAdmin = data.role === 'ROLE_ADMIN';
-
-      // Validate role selection matches account role
-      if (currentRole === 'admin' && !isAdmin) {
-        throw new Error('This is a Member account. Please select "Library Member" tab.');
+      if (!account) {
+        // No matching account found
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        errBox.classList.add('show');
+        document.getElementById('errorText').textContent = 'Invalid email or password. Please try again.';
+        document.getElementById('loginForm').classList.add('shake');
+        setTimeout(() => document.getElementById('loginForm').classList.remove('shake'), 400);
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+        return;
       }
-      if (currentRole === 'member' && isAdmin) {
-        throw new Error('This is an Admin account. Please select "Admin" tab.');
+
+      // Role mismatch check
+      if (currentRole === 'admin' && account.role !== 'admin') {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        errBox.classList.add('show');
+        document.getElementById('errorText').textContent = 'This is a Member account. Please select the "Library Member" tab.';
+        document.getElementById('loginForm').classList.add('shake');
+        setTimeout(() => document.getElementById('loginForm').classList.remove('shake'), 400);
+        return;
+      }
+      if (currentRole === 'member' && account.role !== 'member') {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        errBox.classList.add('show');
+        document.getElementById('errorText').textContent = 'This is an Admin account. Please select the "Admin" tab.';
+        document.getElementById('loginForm').classList.add('shake');
+        setTimeout(() => document.getElementById('loginForm').classList.remove('shake'), 400);
+        return;
       }
 
-      // Store auth info in sessionStorage
+      // ✅ Login successful — save session
+      const isAdmin = account.role === 'admin';
       sessionStorage.setItem('libAuth',  'true');
-      sessionStorage.setItem('libUser',  data.name || email);
-      sessionStorage.setItem('libRole',  data.role);
-      sessionStorage.setItem('libEmail', data.email);
-      sessionStorage.setItem('libToken', data.token);
+      sessionStorage.setItem('libUser',  account.name);
+      sessionStorage.setItem('libRole',  isAdmin ? 'ROLE_ADMIN' : 'ROLE_MEMBER');
+      sessionStorage.setItem('libEmail', account.email);
+      sessionStorage.setItem('libToken', 'static-token-' + account.email); // dummy token
+      sessionStorage.setItem('libId',    ACCOUNTS.indexOf(account) + 1);
 
       // Show success screen
       btn.classList.remove('loading');
@@ -271,31 +318,24 @@
       const ss = document.getElementById('successScreen');
       ss.classList.add('show');
       document.getElementById('successTitle').textContent = isAdmin ? 'Admin Access Granted!' : 'Login Successful!';
-      document.getElementById('successText').textContent  = isAdmin ? 'Redirecting to Admin Panel…' : 'Redirecting to your dashboard…';
+      document.getElementById('successText').textContent  = isAdmin
+        ? `Welcome back, ${account.name}! Redirecting to Admin Panel…`
+        : `Welcome back, ${account.name}! Redirecting to your dashboard…`;
       document.getElementById('progressBar').style.background = isAdmin ? '#8e44ad' : 'var(--accent)';
 
       requestAnimationFrame(() => {
         document.getElementById('progressBar').style.width = '100%';
       });
 
-      // Redirect based on role
+      // Redirect after success animation
       setTimeout(() => {
         window.location.href = isAdmin ? 'admin.html' : 'dashboard.html';
       }, 2000);
 
-    } catch (err) {
-      btn.classList.remove('loading');
-      btn.disabled = false;
-      errBox.classList.add('show');
-      document.getElementById('errorText').textContent = err.message || 'Invalid email or password.';
-      document.getElementById('loginForm').classList.add('shake');
-      setTimeout(() => document.getElementById('loginForm').classList.remove('shake'), 400);
-      document.getElementById('password').value = '';
-      document.getElementById('password').focus();
-    }
+    }, 600); // 600ms loading effect
   }
 
-  /* ── Ripple ── */
+  /* ── Ripple effect ── */
   function addRipple(event, button) {
     const ripple = document.createElement('span');
     ripple.classList.add('ripple-effect');
@@ -312,8 +352,8 @@
       document.getElementById('username').value = 'admin@quantumlibrary.com';
       document.getElementById('password').value = 'admin123';
     } else {
-      document.getElementById('username').value = 'hussain0706w@gmail.com';
-      document.getElementById('password').value = 'member123';
+      document.getElementById('username').value = 'ali@library.com';
+      document.getElementById('password').value = 'ali123';
     }
     showToast('Demo credentials filled! Click Sign In.', 'info');
   });

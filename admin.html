@@ -428,20 +428,6 @@
       <h3>🗑️ Delete Book</h3><button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
     </div>
     <div class="modal-body" style="text-align:center;padding:30px;">
-      <div style="font-size:2.5rem;margin-bottom:12px;">🗑️</div>
-      <p style="font-size:.95rem;color:var(--text);">Are you sure you want to delete <strong id="deleteBookName">"this book"</strong>?</p>
-      <p style="font-size:.82rem;color:var(--text-muted);margin-top:6px;">This action cannot be undone.</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('deleteModal')">Cancel</button>
-      <button class="btn btn-primary" style="background:#e74c3c;" id="confirmDeleteBtn">🗑️ Delete</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast-container" id="toastContainer"></div>
-<script src="script.js"></script>
-<script src="api.js"></script>
 <script>
 /* ── AUTH GUARD ── */
 (function () {
@@ -451,11 +437,71 @@
   }
 }());
 
+/* ══════════════════════════════════════════════
+   STATIC BOOK CATALOG
+   Admin can add/edit/delete — saved to localStorage
+══════════════════════════════════════════════ */
+var DEFAULT_BOOKS = [
+  { id:1,  title:'1984',                            author:'George Orwell',           genre:'fiction',     stock:4, year:1949 },
+  { id:2,  title:'To Kill a Mockingbird',           author:'Harper Lee',              genre:'fiction',     stock:3, year:1960 },
+  { id:3,  title:'A Brief History of Time',         author:'Stephen Hawking',         genre:'science',     stock:5, year:1988 },
+  { id:4,  title:'Sapiens',                         author:'Yuval Noah Harari',       genre:'history',     stock:6, year:2011 },
+  { id:5,  title:'The Great Gatsby',                author:'F. Scott Fitzgerald',     genre:'fiction',     stock:3, year:1925 },
+  { id:6,  title:'The Alchemist',                   author:'Paulo Coelho',            genre:'fiction',     stock:5, year:1988 },
+  { id:7,  title:'Thinking, Fast and Slow',         author:'Daniel Kahneman',         genre:'science',     stock:4, year:2011 },
+  { id:8,  title:'Dune',                            author:'Frank Herbert',           genre:'fiction',     stock:5, year:1965 },
+  { id:9,  title:'Meditations',                     author:'Marcus Aurelius',         genre:'philosophy',  stock:4, year:180  },
+  { id:10, title:'The Hobbit',                      author:'J.R.R. Tolkien',          genre:'fiction',     stock:5, year:1937 },
+  { id:11, title:'Atomic Habits',                   author:'James Clear',             genre:'science',     stock:6, year:2018 },
+  { id:12, title:'Clean Code',                      author:'Robert C. Martin',        genre:'technology',  stock:3, year:2008 },
+  { id:13, title:'Effective Java',                  author:'Joshua Bloch',            genre:'programming', stock:4, year:2018 },
+  { id:14, title:'Head First Java',                 author:'Kathy Sierra',            genre:'programming', stock:5, year:2005 },
+  { id:15, title:'Python Crash Course',             author:'Eric Matthes',            genre:'programming', stock:5, year:2019 },
+  { id:16, title:'Fluent Python',                   author:'Luciano Ramalho',         genre:'programming', stock:3, year:2022 },
+  { id:17, title:'Automate the Boring Stuff',       author:'Al Sweigart',             genre:'programming', stock:4, year:2019 },
+  { id:18, title:'The C Programming Language',      author:'Kernighan & Ritchie',     genre:'programming', stock:3, year:1988 },
+  { id:19, title:'The C++ Programming Language',    author:'Bjarne Stroustrup',       genre:'programming', stock:4, year:2013 },
+  { id:20, title:'Introduction to Algorithms',      author:'Cormen et al.',           genre:'programming', stock:3, year:2009 },
+  { id:21, title:'Data Structures & Algorithms',    author:'Narasimha Karumanchi',    genre:'programming', stock:5, year:2020 },
+  { id:22, title:'Cracking the Coding Interview',   author:'Gayle Laakmann McDowell', genre:'programming', stock:6, year:2015 },
+  { id:23, title:'JavaScript: The Good Parts',      author:'Douglas Crockford',       genre:'programming', stock:4, year:2008 },
+  { id:24, title:'Clean Architecture',              author:'Robert C. Martin',        genre:'programming', stock:3, year:2017 },
+  { id:25, title:'Design Patterns',                 author:'Gang of Four',            genre:'programming', stock:3, year:1994 },
+  { id:26, title:'The Pragmatic Programmer',        author:'Hunt & Thomas',           genre:'programming', stock:5, year:2019 },
+  { id:27, title:'R for Data Science',              author:'Hadley Wickham',          genre:'programming', stock:4, year:2017 },
+  { id:28, title:'Homo Deus',                       author:'Yuval Noah Harari',       genre:'history',     stock:4, year:2015 },
+  { id:29, title:'The Republic',                    author:'Plato',                   genre:'philosophy',  stock:3, year:-380 },
+  { id:30, title:'A Short History of Nearly Everything', author:'Bill Bryson',        genre:'science',     stock:5, year:2003 },
+  { id:31, title:'The Psychology of Money',         author:'Morgan Housel',           genre:'science',     stock:6, year:2020 },
+  { id:32, title:'Guns, Germs, and Steel',          author:'Jared Diamond',           genre:'history',     stock:4, year:1997 },
+];
+
+/* ── Load/save admin books from localStorage ── */
+function loadAdminBooks() {
+  try { return JSON.parse(localStorage.getItem('admin_books') || 'null') || DEFAULT_BOOKS.slice(); }
+  catch(e) { return DEFAULT_BOOKS.slice(); }
+}
+function saveAdminBooks() {
+  localStorage.setItem('admin_books', JSON.stringify(_allBooks));
+}
+
+/* ── Load all borrow records from localStorage ── */
+function loadAllBorrows() {
+  var records = [];
+  try {
+    var raw = JSON.parse(localStorage.getItem('dash_borrowed') || '[]');
+    var curEmail = sessionStorage.getItem('libEmail') || 'member';
+    raw.forEach(function(r) { r._userEmail = curEmail; records.push(r); });
+  } catch(e) {}
+  return records;
+}
+
 /* ── STATE ── */
 var editingBookId = null;
 var deleteBookId  = null;
 var borrowsFilter = 'all';
-var adminSearchQ  = '';
+var _allBorrows   = [];
+var _allBooks     = loadAdminBooks();
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', function () {
@@ -463,27 +509,20 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /* ══════════════════════════════════════════════
-   STATE
+   REFRESH ALL — uses localStorage only
 ══════════════════════════════════════════════ */
-var editingBookId  = null;
-var deleteBookId   = null;
-var borrowsFilter  = 'all';
-var _allBorrows    = [];   // cached from API
-var _allBooks      = [];   // cached from API
-
-/* ══════════════════════════════════════════════
-   REFRESH ALL — calls real backend
-══════════════════════════════════════════════ */
-async function refreshAll() {
-  try {
-    await Promise.all([
-      loadStats(),
-      loadBooks(),
-      loadBorrows(),
-    ]);
-  } catch (err) {
-    showToast('Backend error: ' + err.message, 'error');
-  }
+function refreshAll() {
+  _allBooks   = loadAdminBooks();
+  _allBorrows = loadAllBorrows();
+  loadStats();
+  renderAdminBooks();
+  renderBorrowsTable();
+  renderOverdue();
+  var active  = _allBorrows.filter(function(b) { return !b.returned; });
+  var overdue = active.filter(function(b) { return new Date(b.dueDate) < new Date(); });
+  document.getElementById('adminBorrowsBadge').textContent = active.length  || '';
+  document.getElementById('adminOverdueBadge').textContent = overdue.length || '';
+  renderRecentPanels(active, overdue);
 }
 
 /* ── SECTION NAV ── */
@@ -510,75 +549,74 @@ function closeSidebar() {
 }
 
 /* ══════════════════════════════════════════════
-   LOAD STATS  →  GET /api/admin/stats
+   LOAD STATS — computed from localStorage data
 ══════════════════════════════════════════════ */
-async function loadStats() {
-  const stats = await API.admin.stats();
+function loadStats() {
+  var totalBooks    = _allBooks.length;
+  var totalStock    = _allBooks.reduce(function(s,b) { return s + (b.stock||0); }, 0);
+  var activeBorrows = _allBorrows.filter(function(b) { return !b.returned; }).length;
+  var available     = Math.max(0, totalStock - activeBorrows);
+  var overdueCount  = _allBorrows.filter(function(b) { return !b.returned && new Date(b.dueDate) < new Date(); }).length;
+  var finesTotal    = _allBorrows.reduce(function(s,b) { return s + calcFine(b.dueDate); }, 0);
 
-  animCount('ovTotalBooks', stats.totalBooks      || 0);
-  animCount('ovAvailable',  stats.availableBooks  || 0);
-  animCount('ovBorrowed',   stats.activeBorrows   || 0);
-  animCount('ovOverdue',    stats.overdueCount    || 0);
+  animCount('ovTotalBooks', totalBooks);
+  animCount('ovAvailable',  available);
+  animCount('ovBorrowed',   activeBorrows);
+  animCount('ovOverdue',    overdueCount);
 
-  const fEl = document.getElementById('ovFines');
+  var fEl = document.getElementById('ovFines');
   if (fEl) {
-    fEl.textContent = '₹' + (stats.finesOutstanding || 0);
-    fEl.style.color = stats.finesOutstanding > 0 ? '#e74c3c' : '#8e44ad';
+    fEl.textContent = '₹' + finesTotal;
+    fEl.style.color = finesTotal > 0 ? '#e74c3c' : '#8e44ad';
   }
 
-  setText('subTotalBooks', (stats.totalBooks || 0) + ' titles in library');
-  setText('subAvailable',  (stats.availableBooks || 0) + ' copies in stock');
-  setText('subBorrowed',   (stats.activeBorrows || 0) + ' active loans');
-  setText('subOverdue',    stats.overdueCount > 0 ? stats.overdueCount + ' past due date' : 'all on time ✅');
-  setText('subFines',      stats.finesOutstanding > 0 ? '₹5/day · total ₹' + stats.finesOutstanding : 'no fines due ✅');
+  setText('subTotalBooks', totalBooks + ' titles in library');
+  setText('subAvailable',  available + ' copies in stock');
+  setText('subBorrowed',   activeBorrows + ' active loans');
+  setText('subOverdue',    overdueCount > 0 ? overdueCount + ' past due date' : 'all on time ✅');
+  setText('subFines',      finesTotal > 0 ? '₹5/day · total ₹' + finesTotal : 'no fines due ✅');
 
   setTimeout(function () {
-    var total = (stats.totalBooks || 1);
     setBar('pbTotalBooks', 100);
-    setBar('pbAvailable',  Math.round((stats.availableBooks || 0) / total * 100));
-    setBar('pbBorrowed',   Math.round((stats.activeBorrows  || 0) / total * 100));
-    setBar('pbOverdue',    stats.activeBorrows > 0 ? Math.round(stats.overdueCount / stats.activeBorrows * 100) : 0);
-    setBar('pbFines',      Math.min(Math.round((stats.finesOutstanding || 0) / 500 * 100), 100));
+    setBar('pbAvailable',  totalStock > 0 ? Math.round(available / totalStock * 100) : 0);
+    setBar('pbBorrowed',   totalStock > 0 ? Math.round(activeBorrows / totalStock * 100) : 0);
+    setBar('pbOverdue',    activeBorrows > 0 ? Math.round(overdueCount / activeBorrows * 100) : 0);
+    setBar('pbFines',      Math.min(Math.round(finesTotal / 500 * 100), 100));
   }, 150);
 }
 
 /* ══════════════════════════════════════════════
-   LOAD BOOKS  →  GET /api/books
+   BOOKS TABLE
 ══════════════════════════════════════════════ */
-async function loadBooks() {
-  _allBooks = await API.books.getAll();
-  document.getElementById('adminBooksBadge').textContent = _allBooks.length;
-  renderAdminBooks();
-}
-
 function renderAdminBooks() {
   var q      = ((document.getElementById('bookSearchAdmin') || {}).value || '').toLowerCase().trim();
   var genre  = ((document.getElementById('bookFilterGenre')  || {}).value || 'all');
   var stockF = ((document.getElementById('bookFilterStock')  || {}).value || 'all');
 
   var books = _allBooks.slice();
-  if (q)               books = books.filter(function (b) { return b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || (b.isbn||'').includes(q); });
-  if (genre !== 'all') books = books.filter(function (b) { return b.genre === genre; });
-  if (stockF === 'available') books = books.filter(function (b) { return b.stock > 0; });
-  if (stockF === 'empty')     books = books.filter(function (b) { return b.stock === 0; });
+  if (q)               books = books.filter(function(b) { return b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q); });
+  if (genre !== 'all') books = books.filter(function(b) { return b.genre === genre; });
+  if (stockF === 'available') books = books.filter(function(b) { return b.stock > 0; });
+  if (stockF === 'empty')     books = books.filter(function(b) { return b.stock === 0; });
 
   var lbl = document.getElementById('booksMgmtCount');
   if (lbl) lbl.textContent = '(' + books.length + ' books)';
+  document.getElementById('adminBooksBadge').textContent = _allBooks.length;
 
   var tbody = document.getElementById('booksMgmtBody');
   if (!books.length) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="ei">📭</span>No books found.</div></td></tr>';
     return;
   }
-  tbody.innerHTML = books.map(function (b) {
+  tbody.innerHTML = books.map(function(b) {
     var sClass = b.stock === 0 ? 'empty' : b.stock <= 2 ? 'low' : 'ok';
     var sLabel = b.stock === 0 ? '📛 Out of Stock' : b.stock <= 2 ? '⚠️ ' + b.stock + ' left' : '✅ ' + b.stock + ' copies';
     return '<tr>'
       + '<td style="font-size:.78rem;color:var(--text-muted);font-weight:600;">#' + String(b.id).padStart(3,'0') + '</td>'
-      + '<td><div style="display:flex;align-items:center;gap:10px;"><img src="' + (b.coverUrl||b.cover||'') + '" onerror="this.style.display=\'none\'" style="width:28px;height:38px;object-fit:cover;border-radius:3px;flex-shrink:0;" loading="lazy"/><span style="font-weight:600;font-size:.875rem;">' + b.title + '</span></div></td>'
+      + '<td><span style="font-weight:600;font-size:.875rem;">' + b.title + '</span></td>'
       + '<td style="font-size:.84rem;">' + b.author + '</td>'
       + '<td><span class="book-genre-tag" style="position:static;font-size:.72rem;">' + b.genre + '</span></td>'
-      + '<td style="font-size:.82rem;color:var(--text-muted);">' + (b.year || b.pubYear || '—') + '</td>'
+      + '<td style="font-size:.82rem;color:var(--text-muted);">' + (b.year > 0 ? b.year : Math.abs(b.year) + ' BC') + '</td>'
       + '<td><span class="stock-pill ' + sClass + '">' + sLabel + '</span></td>'
       + '<td style="white-space:nowrap;">'
       + '<button class="act-btn edit-btn" onclick="openEditBookModal(' + b.id + ')">✏️ Edit</button>&nbsp;'
@@ -588,147 +626,123 @@ function renderAdminBooks() {
 }
 
 /* ══════════════════════════════════════════════
-   LOAD BORROWS  →  GET /api/borrow/all
+   BORROWS TABLE
 ══════════════════════════════════════════════ */
-async function loadBorrows() {
-  _allBorrows = await API.borrow.all();
+function loadBorrows() { renderBorrowsTable(); renderOverdue(); }
 
-  // sidebar badges
-  var active  = _allBorrows.filter(function (b) { return !b.returned; });
-  var overdue = active.filter(function (b) { return new Date(b.dueDate) < new Date(); });
-  document.getElementById('adminBorrowsBadge').textContent = active.length  || '';
-  document.getElementById('adminOverdueBadge').textContent = overdue.length || '';
-
-  renderBorrowsTable();
-  renderOverdue();
-  renderRecentPanels(active, overdue);
-}
-
-/* ── Recent panels on overview tab ── */
-function renderRecentPanels(active, overdue) {
-  var rEl = document.getElementById('ovRecentBorrows');
-  if (rEl) {
-    if (!active.length) {
-      rEl.innerHTML = '<div class="empty-state"><span class="ei">📋</span>No active borrows.</div>';
-    } else {
-      rEl.innerHTML = active.slice(0, 5).map(function (b) {
-        var fine = calcFine(b.dueDate);
-        return '<div class="activity-item">'
-          + '<div class="act-icon borrow">📚</div>'
-          + '<div style="flex:1;">'
-          + '<span style="font-size:.85rem;font-weight:600;">' + b.book.title + '</span>'
-          + '<span style="display:block;font-size:.75rem;color:var(--text-muted);">'
-          + b.user.name + ' · Due: ' + fmtDate(b.dueDate)
-          + (fine > 0 ? ' · <span style="color:#e74c3c;font-weight:700;">₹' + fine + ' fine</span>' : '')
-          + '</span></div></div>';
-      }).join('');
-    }
-  }
-
-  var oEl = document.getElementById('ovOverdueSummary');
-  if (oEl) {
-    if (!overdue.length) {
-      oEl.innerHTML = '<div class="empty-state"><span class="ei">✅</span>No overdue books!</div>';
-    } else {
-      oEl.innerHTML = overdue.slice(0, 5).map(function (b) {
-        var fine = calcFine(b.dueDate);
-        return '<div class="activity-item">'
-          + '<div class="act-icon" style="background:rgba(231,76,60,.12);color:#e74c3c;">⚠️</div>'
-          + '<div style="flex:1;">'
-          + '<span style="font-size:.85rem;font-weight:600;color:#e74c3c;">' + b.book.title + '</span>'
-          + '<span style="display:block;font-size:.75rem;color:var(--text-muted);">'
-          + b.user.name + ' · Fine: <strong style="color:#e74c3c;">₹' + fine + '</strong>'
-          + '</span></div></div>';
-      }).join('');
-    }
-  }
-}
-
-/* ── Borrows table ── */
 function filterBorrowsTab(filter, btn) {
   borrowsFilter = filter;
-  document.querySelectorAll('.f-tab').forEach(function (t) { t.classList.remove('active'); });
+  document.querySelectorAll('.f-tab').forEach(function(t) { t.classList.remove('active'); });
   btn.classList.add('active');
   renderBorrowsTable();
 }
 
 function renderBorrowsTable() {
-  var active = _allBorrows.filter(function (b) { return !b.returned; });
-  if (borrowsFilter === 'overdue') active = active.filter(function (b) { return new Date(b.dueDate) < new Date(); });
-  if (borrowsFilter === 'safe')    active = active.filter(function (b) { return new Date(b.dueDate) >= new Date(); });
+  var active = _allBorrows.filter(function(b) { return !b.returned; });
+  if (borrowsFilter === 'overdue') active = active.filter(function(b) { return new Date(b.dueDate) < new Date(); });
+  if (borrowsFilter === 'safe')    active = active.filter(function(b) { return new Date(b.dueDate) >= new Date(); });
 
   var tbody = document.getElementById('borrowsTableBody');
   if (!active.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><span class="ei">📋</span>No borrows in this category.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><span class="ei">📋</span>No borrow records yet.<br><small>Members borrow books from the dashboard.</small></div></td></tr>';
     return;
   }
-  tbody.innerHTML = active.map(function (b, i) {
+  tbody.innerHTML = active.map(function(b, i) {
     var fine     = calcFine(b.dueDate);
     var daysLeft = Math.ceil((new Date(b.dueDate) - new Date()) / 86400000);
     var isOD     = daysLeft < 0;
     var cls      = isOD ? 'overdue' : daysLeft <= 3 ? 'soon' : 'none';
     var lbl      = isOD ? Math.abs(daysLeft) + 'd overdue' : daysLeft + 'd left';
+    var bookTitle = (b.title) || ('Book #' + b.bookId);
+    var userEmail = b._userEmail || 'member';
     return '<tr>'
       + '<td style="font-size:.78rem;color:var(--text-muted);">' + (i+1) + '</td>'
-      + '<td style="font-size:.85rem;font-weight:600;">👤 ' + b.user.name + '<br><span style="font-size:.72rem;color:var(--text-muted);font-weight:400;">' + b.user.email + '</span></td>'
-      + '<td style="font-size:.85rem;">' + b.book.title + '</td>'
+      + '<td style="font-size:.85rem;font-weight:600;">👤 ' + userEmail + '</td>'
+      + '<td style="font-size:.85rem;">' + bookTitle + '</td>'
       + '<td style="font-size:.8rem;color:var(--text-muted);">' + fmtDate(b.borrowDate) + '</td>'
       + '<td style="font-size:.8rem;">' + fmtDate(b.dueDate) + '</td>'
       + '<td><span class="fine-badge ' + cls + '">' + lbl + '</span></td>'
       + '<td style="font-weight:700;' + (fine > 0 ? 'color:#e74c3c;' : 'color:#27ae60;') + '">₹' + fine + '</td>'
-      + '<td><button class="act-btn edit-btn" onclick="adminReturnBook(' + b.id + ')">↩️ Return</button></td>'
+      + '<td><span style="font-size:.75rem;color:var(--text-muted);">—</span></td>'
       + '</tr>';
   }).join('');
 }
 
+/* ── Overview recent panels ── */
+function renderRecentPanels(active, overdue) {
+  var rEl = document.getElementById('ovRecentBorrows');
+  if (rEl) {
+    if (!active.length) {
+      rEl.innerHTML = '<div class="empty-state"><span class="ei">📋</span>No active borrows yet.</div>';
+    } else {
+      rEl.innerHTML = active.slice(0, 5).map(function(b) {
+        var fine = calcFine(b.dueDate);
+        return '<div class="activity-item">'
+          + '<div class="act-icon borrow">📚</div>'
+          + '<div style="flex:1;">'
+          + '<span style="font-size:.85rem;font-weight:600;">' + (b.title || 'Book #' + b.bookId) + '</span>'
+          + '<span style="display:block;font-size:.75rem;color:var(--text-muted);">'
+          + (b._userEmail || 'member') + ' · Due: ' + fmtDate(b.dueDate)
+          + (fine > 0 ? ' · <span style="color:#e74c3c;font-weight:700;">₹' + fine + ' fine</span>' : '')
+          + '</span></div></div>';
+      }).join('');
+    }
+  }
+  var oEl = document.getElementById('ovOverdueSummary');
+  if (oEl) {
+    if (!overdue.length) {
+      oEl.innerHTML = '<div class="empty-state"><span class="ei">✅</span>No overdue books!</div>';
+    } else {
+      oEl.innerHTML = overdue.slice(0, 5).map(function(b) {
+        var fine = calcFine(b.dueDate);
+        return '<div class="activity-item">'
+          + '<div class="act-icon" style="background:rgba(231,76,60,.12);color:#e74c3c;">⚠️</div>'
+          + '<div style="flex:1;">'
+          + '<span style="font-size:.85rem;font-weight:600;color:#e74c3c;">' + (b.title || 'Book #' + b.bookId) + '</span>'
+          + '<span style="display:block;font-size:.75rem;color:var(--text-muted);">'
+          + (b._userEmail || 'member') + ' · Fine: <strong style="color:#e74c3c;">₹' + fine + '</strong>'
+          + '</span></div></div>';
+      }).join('');
+    }
+  }
+}
+
 /* ── Overdue section ── */
 function renderOverdue() {
-  var overdue = _allBorrows.filter(function (b) { return !b.returned && new Date(b.dueDate) < new Date(); });
+  var overdue = _allBorrows.filter(function(b) { return !b.returned && new Date(b.dueDate) < new Date(); });
   var el = document.getElementById('overdueList');
   if (!overdue.length) {
     el.innerHTML = '<div class="empty-state"><span class="ei">✅</span><strong>No overdue books!</strong><p style="margin-top:8px;">All borrowed books are within their due date.</p></div>';
     return;
   }
-  el.innerHTML = overdue.map(function (b) {
+  el.innerHTML = overdue.map(function(b) {
     var fine = calcFine(b.dueDate);
     var days = Math.ceil((new Date() - new Date(b.dueDate)) / 86400000);
     return '<div class="overdue-card">'
       + '<div class="oc-icon">📕</div>'
       + '<div class="oc-info">'
-      + '<div class="oc-title">' + b.book.title + '</div>'
-      + '<div class="oc-meta">Member: <strong>' + b.user.name + '</strong> &nbsp;·&nbsp; Due: <strong style="color:#e74c3c;">' + fmtDate(b.dueDate) + '</strong> &nbsp;·&nbsp; <strong>' + days + ' day' + (days!==1?'s':'') + ' overdue</strong></div>'
+      + '<div class="oc-title">' + (b.title || 'Book #' + b.bookId) + '</div>'
+      + '<div class="oc-meta">Member: <strong>' + (b._userEmail || 'member') + '</strong> &nbsp;·&nbsp; Due: <strong style="color:#e74c3c;">' + fmtDate(b.dueDate) + '</strong> &nbsp;·&nbsp; <strong>' + days + ' day' + (days !== 1 ? 's' : '') + ' overdue</strong></div>'
       + '</div>'
       + '<div class="oc-fine">₹' + fine + '</div>'
       + '</div>';
   }).join('');
 }
 
-/* ── Admin return a book ── */
-async function adminReturnBook(borrowId) {
-  if (!confirm('Mark this book as returned?')) return;
-  try {
-    await API.borrow.return(borrowId);
-    showToast('Book marked as returned ✅', 'success');
-    await refreshAll();
-  } catch (err) {
-    showToast('Return failed: ' + err.message, 'error');
-  }
-}
-
 /* ══════════════════════════════════════════════
-   ADD / EDIT BOOK MODAL
+   ADD / EDIT / DELETE BOOK — saved to localStorage
 ══════════════════════════════════════════════ */
 function openAddBookModal() {
   editingBookId = null;
   document.getElementById('bookModalTitle').textContent   = '➕ Add New Book';
   document.getElementById('bookModalSaveBtn').textContent = '💾 Save Book';
-  ['fTitle','fAuthor','fYear','fIsbn','fStock','fCover','fDesc'].forEach(function (id) { document.getElementById(id).value = ''; });
+  ['fTitle','fAuthor','fYear','fIsbn','fStock','fCover','fDesc'].forEach(function(id) { document.getElementById(id).value = ''; });
   document.getElementById('fGenre').value = 'fiction';
   openModal('bookModal');
 }
 
 function openEditBookModal(id) {
-  var book = _allBooks.find(function (b) { return b.id === id; });
+  var book = _allBooks.find(function(b) { return b.id === id; });
   if (!book) return;
   editingBookId = id;
   document.getElementById('bookModalTitle').textContent   = '✏️ Edit Book';
@@ -736,15 +750,15 @@ function openEditBookModal(id) {
   document.getElementById('fTitle').value  = book.title;
   document.getElementById('fAuthor').value = book.author;
   document.getElementById('fGenre').value  = book.genre;
-  document.getElementById('fYear').value   = book.year || book.pubYear || '';
+  document.getElementById('fYear').value   = book.year || '';
   document.getElementById('fIsbn').value   = book.isbn  || '';
   document.getElementById('fStock').value  = book.stock;
   document.getElementById('fCover').value  = book.coverUrl || book.cover || '';
-  document.getElementById('fDesc').value   = book.description || book.desc || '';
+  document.getElementById('fDesc').value   = book.description || '';
   openModal('bookModal');
 }
 
-async function saveBook() {
+function saveBook() {
   var title  = document.getElementById('fTitle').value.trim();
   var author = document.getElementById('fAuthor').value.trim();
   var genre  = document.getElementById('fGenre').value;
@@ -756,44 +770,42 @@ async function saveBook() {
 
   if (!title || !author || stock < 0) { showToast('Please fill Title, Author, and Stock fields.', 'error'); return; }
 
-  var payload = { title, author, genre, year, isbn, stock, coverUrl: cover, description: desc };
-
-  try {
-    if (editingBookId) {
-      await API.books.update(editingBookId, payload);
-      showToast('"' + title + '" updated successfully! ✅', 'success');
-    } else {
-      await API.books.add(payload, false);
-      showToast('"' + title + '" added successfully! 📚', 'success');
+  if (editingBookId) {
+    var idx = _allBooks.findIndex(function(b) { return b.id === editingBookId; });
+    if (idx !== -1) {
+      _allBooks[idx] = Object.assign(_allBooks[idx], { title:title, author:author, genre:genre, year:year, isbn:isbn, stock:stock, coverUrl:cover, description:desc });
     }
-    closeModal('bookModal');
-    await loadBooks();
-  } catch (err) {
-    showToast('Save failed: ' + err.message, 'error');
+    showToast('"' + title + '" updated ✅', 'success');
+  } else {
+    var newId = Math.max.apply(null, _allBooks.map(function(b) { return b.id; })) + 1;
+    _allBooks.push({ id:newId, title:title, author:author, genre:genre, year:year, isbn:isbn, stock:stock, coverUrl:cover, description:desc });
+    showToast('"' + title + '" added 📚', 'success');
   }
+  saveAdminBooks();
+  closeModal('bookModal');
+  renderAdminBooks();
+  loadStats();
 }
 
 /* ── DELETE ── */
 function openDeleteModal(id) {
   deleteBookId = id;
-  var book = _allBooks.find(function (b) { return b.id === id; });
+  var book = _allBooks.find(function(b) { return b.id === id; });
   document.getElementById('deleteBookName').textContent = book ? '"' + book.title + '"' : 'this book';
   document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
   openModal('deleteModal');
 }
 
-async function confirmDelete() {
+function confirmDelete() {
   if (!deleteBookId) return;
-  var book = _allBooks.find(function (b) { return b.id === deleteBookId; });
-  try {
-    await API.books.delete(deleteBookId);
-    showToast('"' + (book ? book.title : 'Book') + '" deleted.', 'info');
-    closeModal('deleteModal');
-    deleteBookId = null;
-    await loadBooks();
-  } catch (err) {
-    showToast('Delete failed: ' + err.message, 'error');
-  }
+  var book = _allBooks.find(function(b) { return b.id === deleteBookId; });
+  _allBooks = _allBooks.filter(function(b) { return b.id !== deleteBookId; });
+  saveAdminBooks();
+  showToast('"' + (book ? book.title : 'Book') + '" deleted.', 'info');
+  closeModal('deleteModal');
+  deleteBookId = null;
+  renderAdminBooks();
+  loadStats();
 }
 
 /* ── ADMIN SEARCH ── */
@@ -838,12 +850,6 @@ function animCount(id, target) {
   var cur = 0, step = Math.max(1, Math.ceil(target / 40));
   var t = setInterval(function () { cur = Math.min(cur + step, target); el.textContent = cur; if (cur >= target) clearInterval(t); }, 20);
 }
-
-
-
-
-
-
 
 
 </script>
