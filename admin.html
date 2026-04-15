@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel – QuantumLibrary</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>" />
+  <style>
+    /* ── Admin theme ── */
+    :root { --admin-primary:#6c3483; --admin-light:#8e44ad; --admin-glow:rgba(142,68,173,.25); }
+    .sidebar { background: linear-gradient(180deg,#1a0a2e 0%,#2d1b4e 100%); }
+    .sidebar-logo { border-bottom-color: rgba(255,255,255,.08); }
+    .sidebar-link.active { background: rgba(142,68,173,.25); border-left-color: var(--admin-light); }
+    .sidebar-link:hover  { background: rgba(142,68,173,.15); }
+
+    /* ── Section header ── */
+    .admin-section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+    .admin-section-hdr h3 { font-size:1.15rem; font-weight:700; color:var(--primary); }
+
+    /* ══════════════════════════════════════════
+       5 OVERVIEW STAT CARDS
+    ══════════════════════════════════════════ */
+    .admin-stats {
+      display: grid;
+      grid-template-columns: repeat(5,1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    @media(max-width:1200px){ .admin-stats{ grid-template-columns:repeat(3,1fr); } }
+    @media(max-width:700px){  .admin-stats{ grid-template-columns:repeat(2,1fr); } }
+    @media(max-width:420px){  .admin-stats{ grid-template-columns:1fr; } }
+
+    .a-stat {
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 22px 20px 16px;
+      display: flex; flex-direction: column; gap: 4px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer; user-select: none;
+      position: relative; overflow: hidden;
+      transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease;
+    }
+    /* coloured left stripe */
+    .a-stat::before {
+      content: '';
+      position: absolute; top:0; left:0;
+      width: 4px; height: 100%;
+      border-radius: 4px 0 0 4px;
+      background: var(--border);
+      transition: background .2s;
+    }
+    /* hover arrow */
+    .a-stat::after {
+      content: '→';
+      position: absolute; bottom:13px; right:15px;
+      font-size: .82rem; font-weight:700; color:var(--text-muted);
+      opacity:0; transform:translateX(-5px);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .a-stat.purple::before { background: var(--admin-light); }
+    .a-stat.green::before  { background: #27ae60; }
+    .a-stat.orange::before { background: #e67e22; }
+    .a-stat.red::before    { background: #e74c3c; }
+    .a-stat.violet::before { background: #8e44ad; }
+
+    .a-stat:hover { transform:translateY(-5px); box-shadow:0 14px 36px rgba(44,62,80,.13); }
+    .a-stat:hover::after { opacity:1; transform:translateX(0); }
+    .a-stat:hover .a-icon { transform:scale(1.14) rotate(-4deg); }
+    .a-stat:active { transform:translateY(-2px) scale(.975); transition:transform .08s ease; }
+
+    .a-stat .a-icon { font-size:1.65rem; margin-bottom:6px; display:inline-block; transition:transform .22s cubic-bezier(.34,1.56,.64,1); }
+    .a-stat .a-num  { font-size:1.9rem; font-weight:800; line-height:1; color:var(--primary); letter-spacing:-.02em; }
+    .a-stat .a-lbl  { font-size:.75rem; color:var(--text-muted); font-weight:500; margin-bottom:8px; }
+    .a-stat.purple .a-num { color: var(--admin-light); }
+    .a-stat.green  .a-num { color: #27ae60; }
+    .a-stat.orange .a-num { color: #e67e22; }
+    .a-stat.red    .a-num { color: #e74c3c; }
+    .a-stat.violet .a-num { color: #8e44ad; }
+
+    /* progress bar */
+    .a-progress-track { height:5px; background:var(--border); border-radius:50px; overflow:hidden; margin-top:auto; }
+    .a-progress-fill  { height:100%; border-radius:50px; width:0%; transition:width 1.1s cubic-bezier(.4,0,.2,1) .2s; }
+    .a-stat.purple .a-progress-fill { background: var(--admin-light); }
+    .a-stat.green  .a-progress-fill { background: #27ae60; }
+    .a-stat.orange .a-progress-fill { background: #e67e22; }
+    .a-stat.red    .a-progress-fill { background: #e74c3c; }
+    .a-stat.violet .a-progress-fill { background: #8e44ad; }
+
+    /* sub-label under bar */
+    .a-sub { font-size:.68rem; color:var(--text-muted); margin-top:5px; min-height:13px; }
+
+    /* ── Books table ── */
+    .books-mgmt-table { width:100%; border-collapse:collapse; font-size:.875rem; }
+    .books-mgmt-table th { background:var(--primary); color:var(--white); padding:11px 14px; text-align:left; font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+    .books-mgmt-table th:first-child { border-radius:8px 0 0 0; }
+    .books-mgmt-table th:last-child  { border-radius:0 8px 0 0; }
+    .books-mgmt-table td { padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .books-mgmt-table tr:hover td { background:rgba(44,62,80,.03); }
+    .books-mgmt-table tr:last-child td { border-bottom:none; }
+
+    .stock-pill { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:50px; font-size:.75rem; font-weight:600; }
+    .stock-pill.ok    { background:rgba(39,174,96,.12);  color:#27ae60; }
+    .stock-pill.low   { background:rgba(230,126,34,.12); color:#e67e22; }
+    .stock-pill.empty { background:rgba(231,76,60,.12);  color:#e74c3c; }
+
+    .act-btn { padding:5px 11px; border-radius:6px; border:1.5px solid var(--border); background:none; font-size:.77rem; cursor:pointer; transition:var(--transition); font-weight:600; }
+    .act-btn.edit-btn { color:#2980b9; border-color:#2980b9; }
+    .act-btn.edit-btn:hover { background:#2980b9; color:#fff; }
+    .act-btn.del-btn  { color:#e74c3c; border-color:#e74c3c; }
+    .act-btn.del-btn:hover  { background:#e74c3c; color:#fff; }
+
+    /* ── Add/Edit modal form ── */
+    .book-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .book-form-grid .full { grid-column:1/-1; }
+    .form-lbl { display:block; font-size:.82rem; font-weight:600; color:var(--primary); margin-bottom:5px; }
+    .form-inp { width:100%; padding:10px 13px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.875rem; outline:none; transition:var(--transition); background:var(--bg); color:var(--text); font-family:inherit; }
+    .form-inp:focus { border-color:var(--admin-light); background:var(--white); box-shadow:0 0 0 3px var(--admin-glow); }
+
+    /* ── Fine badge ── */
+    .fine-badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:.72rem; font-weight:700; }
+    .fine-badge.none    { background:rgba(39,174,96,.12);  color:#27ae60; }
+    .fine-badge.overdue { background:rgba(231,76,60,.12);  color:#e74c3c; }
+    .fine-badge.soon    { background:rgba(243,156,18,.12); color:#e67e22; }
+
+    /* ── Filter row ── */
+    .filter-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+    .filter-row input, .filter-row select { padding:8px 13px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.85rem; outline:none; background:var(--white); transition:var(--transition); font-family:inherit; color:var(--text); }
+    .filter-row input { width:260px; }
+    .filter-row input:focus, .filter-row select:focus { border-color:var(--admin-light); }
+    .filter-tab-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px; }
+    .f-tab { padding:6px 14px; border-radius:50px; font-size:.8rem; font-weight:600; border:1.5px solid var(--border); background:none; cursor:pointer; color:var(--text-muted); transition:var(--transition); }
+    .f-tab.active, .f-tab:hover { background:var(--admin-light); color:var(--white); border-color:var(--admin-light); }
+
+    /* ── Empty state ── */
+    .empty-state { text-align:center; padding:50px 20px; color:var(--text-muted); }
+    .empty-state .ei { font-size:3rem; margin-bottom:12px; display:block; }
+
+    /* ── Overdue cards ── */
+    .overdue-card { background:var(--white); border-radius:var(--radius); border:1px solid var(--border); padding:18px 20px; display:flex; align-items:center; gap:16px; box-shadow:var(--shadow-sm); margin-bottom:12px; transition:var(--transition); }
+    .overdue-card:hover { transform:translateX(4px); box-shadow:var(--shadow-md); }
+    .overdue-card .oc-icon  { font-size:2rem; flex-shrink:0; }
+    .overdue-card .oc-info  { flex:1; }
+    .overdue-card .oc-title { font-weight:700; font-size:.95rem; color:var(--primary); }
+    .overdue-card .oc-meta  { font-size:.8rem; color:var(--text-muted); margin-top:3px; }
+    .overdue-card .oc-fine  { font-size:1.1rem; font-weight:800; color:#e74c3c; }
+
+    /* ── Modals ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity var(--transition); }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal { background:var(--white); border-radius:var(--radius); width:100%; max-width:500px; box-shadow:var(--shadow-lg); transform:translateY(20px) scale(.96); transition:transform var(--transition); }
+    .modal-overlay.open .modal { transform:translateY(0) scale(1); }
+    .modal-header { padding:24px 28px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .modal-header h3 { font-size:1.1rem; font-weight:700; color:var(--primary); }
+    .modal-close { width:32px; height:32px; background:var(--bg); border:none; border-radius:var(--radius-sm); cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:var(--transition); }
+    .modal-close:hover { background:var(--admin-light); color:#fff; }
+    .modal-body   { padding:28px; }
+    .modal-footer { padding:20px 28px; border-top:1px solid var(--border); display:flex; gap:12px; justify-content:flex-end; }
+
+    .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:199; }
+
+    @media(max-width:900px){ .book-form-grid{grid-template-columns:1fr;} .filter-row input{width:100%;} }
+    @media(max-width:700px){ .dash-grid-wrap{grid-template-columns:1fr !important;} }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🔐</div>
+    <span>Admin Panel</span>
+  </div>
+  <nav class="sidebar-nav">
+    <span class="nav-section-label">Management</span>
+    <button class="sidebar-link active" id="nav-overview" onclick="showSection('overview',this)">
+      <span class="sl-icon">📊</span> Overview
+    </button>
+    <button class="sidebar-link" id="nav-books" onclick="showSection('books',this)">
+      <span class="sl-icon">📚</span> Manage Books
+      <span class="sl-badge" id="adminBooksBadge">0</span>
+    </button>
+    <button class="sidebar-link" id="nav-borrows" onclick="showSection('borrows',this)">
+      <span class="sl-icon">📋</span> All Borrows
+      <span class="sl-badge" id="adminBorrowsBadge" style="background:#27ae60;">0</span>
+    </button>
+    <button class="sidebar-link" id="nav-overdue" onclick="showSection('overdue',this)">
+      <span class="sl-icon">⚠️</span> Overdue &amp; Fines
+      <span class="sl-badge" id="adminOverdueBadge" style="background:#e74c3c;">0</span>
+    </button>
+    <span class="nav-section-label">Account</span>
+    <a class="sidebar-link" href="index.html" style="text-decoration:none;">
+      <span class="sl-icon">🏠</span> Home
+    </a>
+    <button class="sidebar-link" onclick="openLogoutModal()">
+      <span class="sl-icon">🚪</span> Logout
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="user-avatar" style="background:var(--admin-light);">A</div>
+      <div class="user-info">
+        <span class="u-name">Administrator</span>
+        <span class="u-role">Library Admin</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main-content">
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title" id="topbarTitle">Overview</span>
+    </div>
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" id="globalSearch" placeholder="Search books, members..." oninput="handleAdminSearch(this.value)" />
+    </div>
+    <div class="topbar-right">
+      <button class="btn" style="background:var(--admin-light);color:#fff;padding:9px 18px;font-size:.85rem;"
+        onclick="showSection('books',document.getElementById('nav-books'));openAddBookModal()">＋ Add Book</button>
+    </div>
+  </header>
+
+  <div class="page-content">
+
+    <!-- ══ OVERVIEW ══ -->
+    <div class="page-section active" id="section-overview">
+
+      <!-- 5 STAT CARDS -->
+      <div class="admin-stats">
+
+        <!-- Total Books -->
+        <div class="a-stat purple" title="Manage all books"
+             onclick="showSection('books',document.getElementById('nav-books'))">
+          <div class="a-icon">📚</div>
+          <div class="a-num"  id="ovTotalBooks">0</div>
+          <div class="a-lbl">Total Books</div>
+          <div class="a-progress-track"><div class="a-progress-fill" id="pbTotalBooks"></div></div>
+          <div class="a-sub" id="subTotalBooks">in library</div>
+        </div>
+
+        <!-- Available Copies -->
+        <div class="a-stat green" title="Browse available stock"
+             onclick="showSection('books',document.getElementById('nav-books'));document.getElementById('bookFilterStock').value='available';renderAdminBooks();">
+          <div class="a-icon">✅</div>
+          <div class="a-num"  id="ovAvailable">0</div>
+          <div class="a-lbl">Available Copies</div>
+          <div class="a-progress-track"><div class="a-progress-fill" id="pbAvailable"></div></div>
+          <div class="a-sub" id="subAvailable">copies in stock</div>
+        </div>
+
+        <!-- Currently Borrowed -->
+        <div class="a-stat orange" title="View all active borrows"
+             onclick="showSection('borrows',document.getElementById('nav-borrows'))">
+          <div class="a-icon">📋</div>
+          <div class="a-num"  id="ovBorrowed">0</div>
+          <div class="a-lbl">Currently Borrowed</div>
+          <div class="a-progress-track"><div class="a-progress-fill" id="pbBorrowed"></div></div>
+          <div class="a-sub" id="subBorrowed">active loans</div>
+        </div>
+
+        <!-- Overdue -->
+        <div class="a-stat red" title="View overdue books"
+             onclick="showSection('overdue',document.getElementById('nav-overdue'))">
+          <div class="a-icon">⚠️</div>
+          <div class="a-num"  id="ovOverdue">0</div>
+          <div class="a-lbl">Overdue Books</div>
+          <div class="a-progress-track"><div class="a-progress-fill" id="pbOverdue"></div></div>
+          <div class="a-sub" id="subOverdue">past due date</div>
+        </div>
+
+        <!-- Total Fines -->
+        <div class="a-stat violet" title="View fines &amp; overdue section"
+             onclick="showSection('overdue',document.getElementById('nav-overdue'))">
+          <div class="a-icon">💰</div>
+          <div class="a-num"  id="ovFines">₹0</div>
+          <div class="a-lbl">Total Fines Due</div>
+          <div class="a-progress-track"><div class="a-progress-fill" id="pbFines"></div></div>
+          <div class="a-sub" id="subFines">₹5 / day overdue</div>
+        </div>
+
+      </div>
+
+      <!-- Recent panels -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="dash-grid-wrap">
+        <div class="card">
+          <div class="card-header"><h3>📋 Recent Borrows</h3></div>
+          <div class="card-body" id="ovRecentBorrows"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>⚠️ Overdue Summary</h3></div>
+          <div class="card-body" id="ovOverdueSummary"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MANAGE BOOKS ══ -->
+    <div class="page-section" id="section-books">
+      <div class="admin-section-hdr">
+        <h3>📚 Manage Books <span id="booksMgmtCount" style="font-size:.85rem;color:var(--text-muted);font-weight:400;"></span></h3>
+        <button class="btn" style="background:var(--admin-light);color:#fff;padding:9px 18px;font-size:.85rem;" onclick="openAddBookModal()">＋ Add New Book</button>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="bookSearchAdmin" placeholder="🔍 Search by title, author, ISBN..." oninput="renderAdminBooks()" />
+        <select id="bookFilterGenre" onchange="renderAdminBooks()">
+          <option value="all">All Categories</option>
+          <option value="fiction">Fiction</option>
+          <option value="science">Science</option>
+          <option value="history">History</option>
+          <option value="philosophy">Philosophy</option>
+          <option value="programming">Programming</option>
+          <option value="technology">Technology</option>
+        </select>
+        <select id="bookFilterStock" onchange="renderAdminBooks()">
+          <option value="all">All Stock</option>
+          <option value="available">In Stock</option>
+          <option value="empty">Out of Stock</option>
+        </select>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="books-mgmt-table">
+            <thead>
+              <tr><th>ID</th><th>Book</th><th>Author</th><th>Category</th><th>Year</th><th>Stock</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="booksMgmtBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ALL BORROWS ══ -->
+    <div class="page-section" id="section-borrows">
+      <div class="admin-section-hdr"><h3>📋 All Active Borrows</h3></div>
+      <div class="filter-tab-row">
+        <button class="f-tab active" onclick="filterBorrowsTab('all',this)">All</button>
+        <button class="f-tab" onclick="filterBorrowsTab('overdue',this)">⚠️ Overdue</button>
+        <button class="f-tab" onclick="filterBorrowsTab('safe',this)">✅ On Time</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="books-mgmt-table">
+            <thead>
+              <tr><th>#</th><th>Member</th><th>Book</th><th>Borrowed On</th><th>Due Date</th><th>Days Left</th><th>Fine</th><th>Action</th></tr>
+            </thead>
+            <tbody id="borrowsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ OVERDUE & FINES ══ -->
+    <div class="page-section" id="section-overdue">
+      <div class="admin-section-hdr">
+        <h3>⚠️ Overdue Books &amp; Fines</h3>
+        <div style="font-size:.85rem;color:var(--text-muted);">Fine rate: <strong>₹5 / day</strong> after due date</div>
+      </div>
+      <div id="overdueList"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- LOGOUT MODAL -->
+<div class="modal-overlay" id="logoutModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3>Confirm Logout</h3><button class="modal-close" onclick="closeModal('logoutModal')">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:36px 28px;">
+      <div style="font-size:3rem;margin-bottom:12px;">🚪</div>
+      <h3 style="color:var(--admin-light);margin-bottom:10px;">Logout from Admin?</h3>
+      <p style="color:var(--text-muted);font-size:.9rem;">You will be redirected to the home page.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('logoutModal')">Stay</button>
+      <button class="btn btn-primary" style="background:var(--admin-light);" onclick="doLogout()">🚪 Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD / EDIT BOOK MODAL -->
+<div class="modal-overlay" id="bookModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h3 id="bookModalTitle">➕ Add New Book</h3>
+      <button class="modal-close" onclick="closeModal('bookModal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:24px 28px;">
+      <div class="book-form-grid">
+        <div><label class="form-lbl">Book Title *</label><input class="form-inp" id="fTitle" placeholder="e.g. Clean Code" /></div>
+        <div><label class="form-lbl">Author *</label><input class="form-inp" id="fAuthor" placeholder="e.g. Robert C. Martin" /></div>
+        <div>
+          <label class="form-lbl">Category *</label>
+          <select class="form-inp" id="fGenre">
+            <option value="fiction">Fiction</option>
+            <option value="science">Science</option>
+            <option value="history">History</option>
+            <option value="philosophy">Philosophy</option>
+            <option value="programming">Programming</option>
+            <option value="technology">Technology</option>
+          </select>
+        </div>
+        <div><label class="form-lbl">Year</label><input class="form-inp" id="fYear" type="number" placeholder="e.g. 2020" min="0" max="2099" /></div>
+        <div><label class="form-lbl">ISBN</label><input class="form-inp" id="fIsbn" placeholder="978-x-xx-xxxxxx-x" /></div>
+        <div><label class="form-lbl">Stock (copies) *</label><input class="form-inp" id="fStock" type="number" placeholder="e.g. 3" min="0" /></div>
+        <div class="full"><label class="form-lbl">Cover Image URL</label><input class="form-inp" id="fCover" placeholder="https://..." /></div>
+        <div class="full"><label class="form-lbl">Description</label><textarea class="form-inp" id="fDesc" rows="3" placeholder="Short description of the book..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('bookModal')">Cancel</button>
+      <button class="btn btn-primary" style="background:var(--admin-light);" id="bookModalSaveBtn" onclick="saveBook()">💾 Save Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3>🗑️ Delete Book</h3><button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding:30px;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🗑️</div>
+      <p style="font-size:.95rem;color:var(--text);">Are you sure you want to delete <strong id="deleteBookName">"this book"</strong>?</p>
+      <p style="font-size:.82rem;color:var(--text-muted);margin-top:6px;">This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-primary" style="background:#e74c3c;" id="confirmDeleteBtn">🗑️ Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="script.js"></script>
+<script src="api.js"></script>
+<script>
+/* ── AUTH GUARD ── */
+(function () {
+  var role = sessionStorage.getItem('libRole');
+  if (!sessionStorage.getItem('libAuth') || (role !== 'ROLE_ADMIN' && role !== 'admin')) {
+    window.location.href = 'login.html';
+  }
+}());
+
+/* ── STATE ── */
+var editingBookId = null;
+var deleteBookId  = null;
+var borrowsFilter = 'all';
+var adminSearchQ  = '';
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', function () {
+  refreshAll();
+});
+
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+var editingBookId  = null;
+var deleteBookId   = null;
+var borrowsFilter  = 'all';
+var _allBorrows    = [];   // cached from API
+var _allBooks      = [];   // cached from API
+
+/* ══════════════════════════════════════════════
+   REFRESH ALL — calls real backend
+══════════════════════════════════════════════ */
+async function refreshAll() {
+  try {
+    await Promise.all([
+      loadStats(),
+      loadBooks(),
+      loadBorrows(),
+    ]);
+  } catch (err) {
+    showToast('Backend error: ' + err.message, 'error');
+  }
+}
+
+/* ── SECTION NAV ── */
+function showSection(name, btn) {
+  var titles = { overview:'Overview', books:'Manage Books', borrows:'All Borrows', overdue:'Overdue & Fines' };
+  document.getElementById('topbarTitle').textContent = titles[name] || name;
+  document.querySelectorAll('.page-section').forEach(function (s) { s.classList.remove('active'); });
+  document.getElementById('section-' + name).classList.add('active');
+  document.querySelectorAll('.sidebar-link').forEach(function (l) { l.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  if (window.innerWidth < 900) closeSidebar();
+  refreshAll();
+}
+
+/* ── SIDEBAR ── */
+function toggleSidebar() {
+  var s = document.getElementById('sidebar'), o = document.getElementById('sidebarOverlay');
+  s.classList.toggle('open');
+  o.style.display = s.classList.contains('open') ? 'block' : 'none';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').style.display = 'none';
+}
+
+/* ══════════════════════════════════════════════
+   LOAD STATS  →  GET /api/admin/stats
+══════════════════════════════════════════════ */
+async function loadStats() {
+  const stats = await API.admin.stats();
+
+  animCount('ovTotalBooks', stats.totalBooks      || 0);
+  animCount('ovAvailable',  stats.availableBooks  || 0);
+  animCount('ovBorrowed',   stats.activeBorrows   || 0);
+  animCount('ovOverdue',    stats.overdueCount    || 0);
+
+  const fEl = document.getElementById('ovFines');
+  if (fEl) {
+    fEl.textContent = '₹' + (stats.finesOutstanding || 0);
+    fEl.style.color = stats.finesOutstanding > 0 ? '#e74c3c' : '#8e44ad';
+  }
+
+  setText('subTotalBooks', (stats.totalBooks || 0) + ' titles in library');
+  setText('subAvailable',  (stats.availableBooks || 0) + ' copies in stock');
+  setText('subBorrowed',   (stats.activeBorrows || 0) + ' active loans');
+  setText('subOverdue',    stats.overdueCount > 0 ? stats.overdueCount + ' past due date' : 'all on time ✅');
+  setText('subFines',      stats.finesOutstanding > 0 ? '₹5/day · total ₹' + stats.finesOutstanding : 'no fines due ✅');
+
+  setTimeout(function () {
+    var total = (stats.totalBooks || 1);
+    setBar('pbTotalBooks', 100);
+    setBar('pbAvailable',  Math.round((stats.availableBooks || 0) / total * 100));
+    setBar('pbBorrowed',   Math.round((stats.activeBorrows  || 0) / total * 100));
+    setBar('pbOverdue',    stats.activeBorrows > 0 ? Math.round(stats.overdueCount / stats.activeBorrows * 100) : 0);
+    setBar('pbFines',      Math.min(Math.round((stats.finesOutstanding || 0) / 500 * 100), 100));
+  }, 150);
+}
+
+/* ══════════════════════════════════════════════
+   LOAD BOOKS  →  GET /api/books
+══════════════════════════════════════════════ */
+async function loadBooks() {
+  _allBooks = await API.books.getAll();
+  document.getElementById('adminBooksBadge').textContent = _allBooks.length;
+  renderAdminBooks();
+}
+
+function renderAdminBooks() {
+  var q      = ((document.getElementById('bookSearchAdmin') || {}).value || '').toLowerCase().trim();
+  var genre  = ((document.getElementById('bookFilterGenre')  || {}).value || 'all');
+  var stockF = ((document.getElementById('bookFilterStock')  || {}).value || 'all');
+
+  var books = _allBooks.slice();
+  if (q)               books = books.filter(function (b) { return b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || (b.isbn||'').includes(q); });
+  if (genre !== 'all') books = books.filter(function (b) { return b.genre === genre; });
+  if (stockF === 'available') books = books.filter(function (b) { return b.stock > 0; });
+  if (stockF === 'empty')     books = books.filter(function (b) { return b.stock === 0; });
+
+  var lbl = document.getElementById('booksMgmtCount');
+  if (lbl) lbl.textContent = '(' + books.length + ' books)';
+
+  var tbody = document.getElementById('booksMgmtBody');
+  if (!books.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="ei">📭</span>No books found.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = books.map(function (b) {
+    var sClass = b.stock === 0 ? 'empty' : b.stock <= 2 ? 'low' : 'ok';
+    var sLabel = b.stock === 0 ? '📛 Out of Stock' : b.stock <= 2 ? '⚠️ ' + b.stock + ' left' : '✅ ' + b.stock + ' copies';
+    return '<tr>'
+      + '<td style="font-size:.78rem;color:var(--text-muted);font-weight:600;">#' + String(b.id).padStart(3,'0') + '</td>'
+      + '<td><div style="display:flex;align-items:center;gap:10px;"><img src="' + (b.coverUrl||b.cover||'') + '" onerror="this.style.display=\'none\'" style="width:28px;height:38px;object-fit:cover;border-radius:3px;flex-shrink:0;" loading="lazy"/><span style="font-weight:600;font-size:.875rem;">' + b.title + '</span></div></td>'
+      + '<td style="font-size:.84rem;">' + b.author + '</td>'
+      + '<td><span class="book-genre-tag" style="position:static;font-size:.72rem;">' + b.genre + '</span></td>'
+      + '<td style="font-size:.82rem;color:var(--text-muted);">' + (b.year || b.pubYear || '—') + '</td>'
+      + '<td><span class="stock-pill ' + sClass + '">' + sLabel + '</span></td>'
+      + '<td style="white-space:nowrap;">'
+      + '<button class="act-btn edit-btn" onclick="openEditBookModal(' + b.id + ')">✏️ Edit</button>&nbsp;'
+      + '<button class="act-btn del-btn"  onclick="openDeleteModal(' + b.id + ')">🗑️</button>'
+      + '</td></tr>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════
+   LOAD BORROWS  →  GET /api/borrow/all
+══════════════════════════════════════════════ */
+async function loadBorrows() {
+  _allBorrows = await API.borrow.all();
+
+  // sidebar badges
+  var active  = _allBorrows.filter(function (b) { return !b.returned; });
+  var overdue = active.filter(function (b) { return new Date(b.dueDate) < new Date(); });
+  document.getElementById('adminBorrowsBadge').textContent = active.length  || '';
+  document.getElementById('adminOverdueBadge').textContent = overdue.length || '';
+
+  renderBorrowsTable();
+  renderOverdue();
+  renderRecentPanels(active, overdue);
+}
+
+/* ── Recent panels on overview tab ── */
+function renderRecentPanels(active, overdue) {
+  var rEl = document.getElementById('ovRecentBorrows');
+  if (rEl) {
+    if (!active.length) {
+      rEl.innerHTML = '<div class="empty-state"><span class="ei">📋</span>No active borrows.</div>';
+    } else {
+      rEl.innerHTML = active.slice(0, 5).map(function (b) {
+        var fine = calcFine(b.dueDate);
+        return '<div class="activity-item">'
+          + '<div class="act-icon borrow">📚</div>'
+          + '<div style="flex:1;">'
+          + '<span style="font-size:.85rem;font-weight:600;">' + b.book.title + '</span>'
+          + '<span style="display:block;font-size:.75rem;color:var(--text-muted);">'
+          + b.user.name + ' · Due: ' + fmtDate(b.dueDate)
+          + (fine > 0 ? ' · <span style="color:#e74c3c;font-weight:700;">₹' + fine + ' fine</span>' : '')
+          + '</span></div></div>';
+      }).join('');
+    }
+  }
+
+  var oEl = document.getElementById('ovOverdueSummary');
+  if (oEl) {
+    if (!overdue.length) {
+      oEl.innerHTML = '<div class="empty-state"><span class="ei">✅</span>No overdue books!</div>';
+    } else {
+      oEl.innerHTML = overdue.slice(0, 5).map(function (b) {
+        var fine = calcFine(b.dueDate);
+        return '<div class="activity-item">'
+          + '<div class="act-icon" style="background:rgba(231,76,60,.12);color:#e74c3c;">⚠️</div>'
+          + '<div style="flex:1;">'
+          + '<span style="font-size:.85rem;font-weight:600;color:#e74c3c;">' + b.book.title + '</span>'
+          + '<span style="display:block;font-size:.75rem;color:var(--text-muted);">'
+          + b.user.name + ' · Fine: <strong style="color:#e74c3c;">₹' + fine + '</strong>'
+          + '</span></div></div>';
+      }).join('');
+    }
+  }
+}
+
+/* ── Borrows table ── */
+function filterBorrowsTab(filter, btn) {
+  borrowsFilter = filter;
+  document.querySelectorAll('.f-tab').forEach(function (t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  renderBorrowsTable();
+}
+
+function renderBorrowsTable() {
+  var active = _allBorrows.filter(function (b) { return !b.returned; });
+  if (borrowsFilter === 'overdue') active = active.filter(function (b) { return new Date(b.dueDate) < new Date(); });
+  if (borrowsFilter === 'safe')    active = active.filter(function (b) { return new Date(b.dueDate) >= new Date(); });
+
+  var tbody = document.getElementById('borrowsTableBody');
+  if (!active.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><span class="ei">📋</span>No borrows in this category.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = active.map(function (b, i) {
+    var fine     = calcFine(b.dueDate);
+    var daysLeft = Math.ceil((new Date(b.dueDate) - new Date()) / 86400000);
+    var isOD     = daysLeft < 0;
+    var cls      = isOD ? 'overdue' : daysLeft <= 3 ? 'soon' : 'none';
+    var lbl      = isOD ? Math.abs(daysLeft) + 'd overdue' : daysLeft + 'd left';
+    return '<tr>'
+      + '<td style="font-size:.78rem;color:var(--text-muted);">' + (i+1) + '</td>'
+      + '<td style="font-size:.85rem;font-weight:600;">👤 ' + b.user.name + '<br><span style="font-size:.72rem;color:var(--text-muted);font-weight:400;">' + b.user.email + '</span></td>'
+      + '<td style="font-size:.85rem;">' + b.book.title + '</td>'
+      + '<td style="font-size:.8rem;color:var(--text-muted);">' + fmtDate(b.borrowDate) + '</td>'
+      + '<td style="font-size:.8rem;">' + fmtDate(b.dueDate) + '</td>'
+      + '<td><span class="fine-badge ' + cls + '">' + lbl + '</span></td>'
+      + '<td style="font-weight:700;' + (fine > 0 ? 'color:#e74c3c;' : 'color:#27ae60;') + '">₹' + fine + '</td>'
+      + '<td><button class="act-btn edit-btn" onclick="adminReturnBook(' + b.id + ')">↩️ Return</button></td>'
+      + '</tr>';
+  }).join('');
+}
+
+/* ── Overdue section ── */
+function renderOverdue() {
+  var overdue = _allBorrows.filter(function (b) { return !b.returned && new Date(b.dueDate) < new Date(); });
+  var el = document.getElementById('overdueList');
+  if (!overdue.length) {
+    el.innerHTML = '<div class="empty-state"><span class="ei">✅</span><strong>No overdue books!</strong><p style="margin-top:8px;">All borrowed books are within their due date.</p></div>';
+    return;
+  }
+  el.innerHTML = overdue.map(function (b) {
+    var fine = calcFine(b.dueDate);
+    var days = Math.ceil((new Date() - new Date(b.dueDate)) / 86400000);
+    return '<div class="overdue-card">'
+      + '<div class="oc-icon">📕</div>'
+      + '<div class="oc-info">'
+      + '<div class="oc-title">' + b.book.title + '</div>'
+      + '<div class="oc-meta">Member: <strong>' + b.user.name + '</strong> &nbsp;·&nbsp; Due: <strong style="color:#e74c3c;">' + fmtDate(b.dueDate) + '</strong> &nbsp;·&nbsp; <strong>' + days + ' day' + (days!==1?'s':'') + ' overdue</strong></div>'
+      + '</div>'
+      + '<div class="oc-fine">₹' + fine + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+/* ── Admin return a book ── */
+async function adminReturnBook(borrowId) {
+  if (!confirm('Mark this book as returned?')) return;
+  try {
+    await API.borrow.return(borrowId);
+    showToast('Book marked as returned ✅', 'success');
+    await refreshAll();
+  } catch (err) {
+    showToast('Return failed: ' + err.message, 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ADD / EDIT BOOK MODAL
+══════════════════════════════════════════════ */
+function openAddBookModal() {
+  editingBookId = null;
+  document.getElementById('bookModalTitle').textContent   = '➕ Add New Book';
+  document.getElementById('bookModalSaveBtn').textContent = '💾 Save Book';
+  ['fTitle','fAuthor','fYear','fIsbn','fStock','fCover','fDesc'].forEach(function (id) { document.getElementById(id).value = ''; });
+  document.getElementById('fGenre').value = 'fiction';
+  openModal('bookModal');
+}
+
+function openEditBookModal(id) {
+  var book = _allBooks.find(function (b) { return b.id === id; });
+  if (!book) return;
+  editingBookId = id;
+  document.getElementById('bookModalTitle').textContent   = '✏️ Edit Book';
+  document.getElementById('bookModalSaveBtn').textContent = '💾 Update Book';
+  document.getElementById('fTitle').value  = book.title;
+  document.getElementById('fAuthor').value = book.author;
+  document.getElementById('fGenre').value  = book.genre;
+  document.getElementById('fYear').value   = book.year || book.pubYear || '';
+  document.getElementById('fIsbn').value   = book.isbn  || '';
+  document.getElementById('fStock').value  = book.stock;
+  document.getElementById('fCover').value  = book.coverUrl || book.cover || '';
+  document.getElementById('fDesc').value   = book.description || book.desc || '';
+  openModal('bookModal');
+}
+
+async function saveBook() {
+  var title  = document.getElementById('fTitle').value.trim();
+  var author = document.getElementById('fAuthor').value.trim();
+  var genre  = document.getElementById('fGenre').value;
+  var year   = parseInt(document.getElementById('fYear').value)  || new Date().getFullYear();
+  var isbn   = document.getElementById('fIsbn').value.trim();
+  var stock  = parseInt(document.getElementById('fStock').value) || 0;
+  var cover  = document.getElementById('fCover').value.trim();
+  var desc   = document.getElementById('fDesc').value.trim();
+
+  if (!title || !author || stock < 0) { showToast('Please fill Title, Author, and Stock fields.', 'error'); return; }
+
+  var payload = { title, author, genre, year, isbn, stock, coverUrl: cover, description: desc };
+
+  try {
+    if (editingBookId) {
+      await API.books.update(editingBookId, payload);
+      showToast('"' + title + '" updated successfully! ✅', 'success');
+    } else {
+      await API.books.add(payload, false);
+      showToast('"' + title + '" added successfully! 📚', 'success');
+    }
+    closeModal('bookModal');
+    await loadBooks();
+  } catch (err) {
+    showToast('Save failed: ' + err.message, 'error');
+  }
+}
+
+/* ── DELETE ── */
+function openDeleteModal(id) {
+  deleteBookId = id;
+  var book = _allBooks.find(function (b) { return b.id === id; });
+  document.getElementById('deleteBookName').textContent = book ? '"' + book.title + '"' : 'this book';
+  document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
+  openModal('deleteModal');
+}
+
+async function confirmDelete() {
+  if (!deleteBookId) return;
+  var book = _allBooks.find(function (b) { return b.id === deleteBookId; });
+  try {
+    await API.books.delete(deleteBookId);
+    showToast('"' + (book ? book.title : 'Book') + '" deleted.', 'info');
+    closeModal('deleteModal');
+    deleteBookId = null;
+    await loadBooks();
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+/* ── ADMIN SEARCH ── */
+function handleAdminSearch(q) {
+  if (q.trim()) {
+    showSection('books', document.getElementById('nav-books'));
+    document.getElementById('bookSearchAdmin').value = q.trim();
+    renderAdminBooks();
+  }
+}
+
+/* ── MODALS ── */
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(function (o) {
+  o.addEventListener('click', function (e) { if (e.target === o) o.classList.remove('open'); });
+});
+
+/* ── LOGOUT ── */
+function openLogoutModal() { openModal('logoutModal'); }
+function doLogout() {
+  ['libAuth','libUser','libRole','libEmail','libToken'].forEach(function (k) { sessionStorage.removeItem(k); });
+  window.location.href = 'index.html';
+}
+
+/* ── KEYBOARD ── */
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(function (m) { m.classList.remove('open'); });
+});
+
+/* ── HELPERS ── */
+function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+function fmtDate(dateStr) { return new Date(dateStr).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }); }
+function setBar(id, pct)  { var el = document.getElementById(id); if (el) el.style.width = Math.max(0, Math.min(100, pct)) + '%'; }
+function calcFine(dueDate) {
+  var daysLate = Math.ceil((new Date() - new Date(dueDate)) / 86400000);
+  return daysLate > 0 ? daysLate * 5 : 0;
+}
+function animCount(id, target) {
+  var el = document.getElementById(id); if (!el) return;
+  el.textContent = '0';
+  var cur = 0, step = Math.max(1, Math.ceil(target / 40));
+  var t = setInterval(function () { cur = Math.min(cur + step, target); el.textContent = cur; if (cur >= target) clearInterval(t); }, 20);
+}
+
+
+
+
+
+
+
+
+</script>
+</body>
+</html>

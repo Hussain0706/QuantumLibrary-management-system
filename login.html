@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Login to QuantumLibrary – Library Management System for Admins and Students." />
+  <title>Login – QuantumLibrary</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>" />
+  <style>
+    body { background: var(--white); }
+
+    /* ── Role Toggle ── */
+    .role-toggle-wrap {
+      display: flex;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      gap: 4px;
+    }
+    .role-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      border-radius: 7px;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .25s ease;
+      background: transparent;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .role-btn.active {
+      background: var(--primary);
+      color: var(--white);
+      box-shadow: 0 2px 8px rgba(44,62,80,.3);
+    }
+    .role-btn.active.admin-active {
+      background: linear-gradient(135deg, #8e44ad, #6c3483);
+      box-shadow: 0 2px 8px rgba(142,68,173,.35);
+    }
+
+    /* ── Success screen ── */
+    @keyframes checkPop {
+      0%   { transform: scale(0) rotate(-45deg); opacity: 0; }
+      70%  { transform: scale(1.2) rotate(5deg); }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+    .success-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 40px 0;
+      text-align: center;
+    }
+    .success-screen.show { display: flex; animation: fadeIn .4s ease; }
+    .success-icon {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(46,213,115,.15);
+      border: 2px solid rgba(46,213,115,.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      animation: checkPop .5s ease .1s both;
+    }
+    .success-screen h3 { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
+    .success-screen p  { font-size: .9rem; color: var(--text-muted); }
+
+    /* ── Shake + Ripple ── */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+    .shake { animation: shake .4s ease; }
+    @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+    .ripple-effect {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,.3);
+      width: 60px; height: 60px;
+      margin-left: -30px; margin-top: -30px;
+      animation: ripple .6s linear;
+      pointer-events: none;
+    }
+
+    /* ── Admin badge on left panel ── */
+    .admin-mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(142,68,173,.2);
+      border: 1px solid rgba(142,68,173,.4);
+      color: #d2b4de;
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: .8rem;
+      font-weight: 600;
+      margin-top: 10px;
+      transition: opacity .3s;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-page">
+
+  <!-- ═══ LEFT PANEL ═══ -->
+  <div class="login-left">
+    <div class="login-left-content">
+      <div class="logo-big">📚</div>
+      <h2>QuantumLibrary System</h2>
+      <p id="leftTagline">Your personal library companion — discover, borrow, and return books with ease.</p>
+      <div class="admin-mode-badge" id="adminBadge" style="opacity:0;">🔐 Admin Portal</div>
+
+      <div class="login-features">
+        <div class="login-feature"><div class="check">✔</div><span>Browse 20+ books across all categories</span></div>
+        <div class="login-feature"><div class="check">✔</div><span>Borrow books &amp; track them easily</span></div>
+        <div class="login-feature"><div class="check">✔</div><span>Return books with one click</span></div>
+        <div class="login-feature"><div class="check">✔</div><span>Auto fine calculation for overdue books</span></div>
+        <div class="login-feature"><div class="check">✔</div><span id="adminFeatureText">Search &amp; filter by author or category</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RIGHT PANEL ═══ -->
+  <div class="login-right">
+    <div class="login-form-container">
+
+      <a href="index.html" class="back-link">← Back to Home</a>
+
+      <div id="loginFormWrap">
+        <!-- Role Selector -->
+        <div class="role-toggle-wrap">
+          <button class="role-btn active" id="btnMember" onclick="setRole('member')">👤 Library Member</button>
+          <button class="role-btn" id="btnAdmin" onclick="setRole('admin')">🔐 Admin</button>
+        </div>
+
+        <h1 id="loginTitle">Welcome Back 👋</h1>
+        <p class="subtitle" id="loginSubtitle">Sign in to your library member account to continue.</p>
+
+        <div class="error-msg" id="errorMsg">
+          ⚠️ <span id="errorText">Invalid username or password. Please try again.</span>
+        </div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)" novalidate>
+          <div class="input-group">
+            <label for="username">Email</label>
+            <span class="input-icon">👤</span>
+            <input type="text" id="username" placeholder="Enter your email" autocomplete="email" required />
+          </div>
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <span class="input-icon">🔒</span>
+            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required />
+            <button type="button" class="toggle-pwd" id="togglePwd">👁</button>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--text-muted);cursor:pointer;">
+              <input type="checkbox" id="rememberMe" /> Remember me
+            </label>
+            <a href="#" style="font-size:.85rem;color:var(--accent);font-weight:500;">Forgot Password?</a>
+          </div>
+
+          <button type="submit" class="btn-login" id="loginBtn">
+            <span class="btn-text">Sign In →</span>
+            <div class="spinner"></div>
+          </button>
+        </form>
+
+        <div class="demo-hint" id="demoHint">
+          🔐 Admin — <code>admin@quantumlibrary.com</code> / <code>admin123</code> &nbsp;|&nbsp; Member — <code>hussain0706w@gmail.com</code> / <code>member123</code>
+        </div>
+      </div>
+
+      <!-- Success screen -->
+      <div class="success-screen" id="successScreen">
+        <div class="success-icon">✅</div>
+        <h3 id="successTitle">Login Successful!</h3>
+        <p id="successText">Redirecting you to the dashboard…</p>
+        <div style="margin-top:8px;">
+          <div style="width:200px;height:4px;background:var(--border);border-radius:50px;overflow:hidden;">
+            <div id="progressBar" style="height:100%;width:0%;background:var(--accent);border-radius:50px;transition:width 1.8s ease;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="script.js"></script>
+<script src="api.js"></script>
+<script>
+  let currentRole = 'member';
+
+  /* ── Role switcher ── */
+  function setRole(role) {
+    currentRole = role;
+    const isAdmin = role === 'admin';
+
+    document.getElementById('btnMember').className = 'role-btn' + (isAdmin ? '' : ' active');
+    document.getElementById('btnAdmin').className  = 'role-btn' + (isAdmin ? ' active admin-active' : '');
+    document.getElementById('loginTitle').textContent    = isAdmin ? 'Admin Portal 🔐' : 'Welcome Back 👋';
+    document.getElementById('loginSubtitle').textContent = isAdmin
+      ? 'Sign in with your admin credentials to manage the library.'
+      : 'Sign in to your library member account to continue.';
+    document.getElementById('adminBadge').style.opacity  = isAdmin ? '1' : '0';
+  }
+
+  /* ── Toggle password ── */
+  document.getElementById('togglePwd').addEventListener('click', function () {
+    const input = document.getElementById('password');
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    this.textContent = isText ? '👁' : '🙈';
+  });
+
+
+  /* ── Handle login — calls Spring Boot backend API ── */
+  async function handleLogin(e) {
+    e.preventDefault();
+    const email    = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('loginBtn');
+    const errBox   = document.getElementById('errorMsg');
+
+    errBox.classList.remove('show');
+    btn.classList.add('loading');
+    btn.disabled = true;
+    addRipple(e, btn);
+
+    try {
+      // Call the real backend
+      const data = await API.auth.login(email, password);
+
+      // data = { token, name, email, role }
+      const isAdmin = data.role === 'ROLE_ADMIN';
+
+      // Validate role selection matches account role
+      if (currentRole === 'admin' && !isAdmin) {
+        throw new Error('This is a Member account. Please select "Library Member" tab.');
+      }
+      if (currentRole === 'member' && isAdmin) {
+        throw new Error('This is an Admin account. Please select "Admin" tab.');
+      }
+
+      // Store auth info in sessionStorage
+      sessionStorage.setItem('libAuth',  'true');
+      sessionStorage.setItem('libUser',  data.name || email);
+      sessionStorage.setItem('libRole',  data.role);
+      sessionStorage.setItem('libEmail', data.email);
+      sessionStorage.setItem('libToken', data.token);
+
+      // Show success screen
+      btn.classList.remove('loading');
+      document.getElementById('loginFormWrap').style.display = 'none';
+      const ss = document.getElementById('successScreen');
+      ss.classList.add('show');
+      document.getElementById('successTitle').textContent = isAdmin ? 'Admin Access Granted!' : 'Login Successful!';
+      document.getElementById('successText').textContent  = isAdmin ? 'Redirecting to Admin Panel…' : 'Redirecting to your dashboard…';
+      document.getElementById('progressBar').style.background = isAdmin ? '#8e44ad' : 'var(--accent)';
+
+      requestAnimationFrame(() => {
+        document.getElementById('progressBar').style.width = '100%';
+      });
+
+      // Redirect based on role
+      setTimeout(() => {
+        window.location.href = isAdmin ? 'admin.html' : 'dashboard.html';
+      }, 2000);
+
+    } catch (err) {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      errBox.classList.add('show');
+      document.getElementById('errorText').textContent = err.message || 'Invalid email or password.';
+      document.getElementById('loginForm').classList.add('shake');
+      setTimeout(() => document.getElementById('loginForm').classList.remove('shake'), 400);
+      document.getElementById('password').value = '';
+      document.getElementById('password').focus();
+    }
+  }
+
+  /* ── Ripple ── */
+  function addRipple(event, button) {
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple-effect');
+    const rect = button.getBoundingClientRect();
+    ripple.style.left = ((event.clientX || rect.left + rect.width / 2) - rect.left) + 'px';
+    ripple.style.top  = ((event.clientY || rect.top  + rect.height / 2) - rect.top)  + 'px';
+    button.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+  }
+
+  /* ── Double-click hint to auto-fill ── */
+  document.getElementById('demoHint').addEventListener('dblclick', () => {
+    if (currentRole === 'admin') {
+      document.getElementById('username').value = 'admin@quantumlibrary.com';
+      document.getElementById('password').value = 'admin123';
+    } else {
+      document.getElementById('username').value = 'hussain0706w@gmail.com';
+      document.getElementById('password').value = 'member123';
+    }
+    showToast('Demo credentials filled! Click Sign In.', 'info');
+  });
+</script>
+</body>
+</html>
