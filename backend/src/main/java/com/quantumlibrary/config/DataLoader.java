@@ -16,13 +16,13 @@ import java.util.List;
  * DataLoader — seeds the database on first startup.
  *
  *  Seeds:
- *   👤 1 Admin    → admin@quantumlibrary.com / admin123
- *   👤 1 Member   → hussain0706w@gmail.com   / member123
- *   📚 20 books   ← same catalog as the frontend localStorage data
+ *   👤 1 Admin     →  21x51a3235srecnandyal.edu.in   / hussain
+ *   👤 4 Members   →  (see seedUsers() below)
+ *   📚 20 books    ←  same catalog as the frontend
  *
  *  Checks before inserting:
  *   - Users: only seeds if users table is empty
- *   - Books:  only seeds if books table is empty
+ *   - Books: only seeds if books table is empty
  *
  *  This means re-running the app never duplicates data.
  */
@@ -45,27 +45,61 @@ public class DataLoader implements CommandLineRunner {
     // ─────────────────────────────────────────────────
     private void seedUsers() {
         if (userRepository.count() > 0) return;
-        log.info("🌱 Seeding users...");
+        log.info("🌱 Seeding real users...");
 
         userRepository.saveAll(List.of(
+
+            // ── ADMIN ──
             User.builder()
                 .name("Library Admin")
-                .email("admin@quantumlibrary.com")
-                .password(passwordEncoder.encode("admin123"))
+                .email("21x51a3235srecnandyal.edu.in")
+                .password(passwordEncoder.encode("hussain"))
                 .role(User.Role.ROLE_ADMIN)
                 .phone("+91 93922 46590")
                 .active(true)
                 .build(),
+
+            // ── MEMBER 1 ──
+            User.builder()
+                .name("Saddam BKR")
+                .email("shaiksaddambkr711@gmail.com")
+                .password(passwordEncoder.encode("2004"))
+                .role(User.Role.ROLE_MEMBER)
+                .phone("")
+                .active(true)
+                .build(),
+
+            // ── MEMBER 2 ──
+            User.builder()
+                .name("Asaduddin")
+                .email("dudekulaasaduddin210@gmail.com")
+                .password(passwordEncoder.encode("2003"))
+                .role(User.Role.ROLE_MEMBER)
+                .phone("")
+                .active(true)
+                .build(),
+
+            // ── MEMBER 3 ──
             User.builder()
                 .name("Hussain")
                 .email("hussain0706w@gmail.com")
-                .password(passwordEncoder.encode("member123"))
+                .password(passwordEncoder.encode("2004"))
                 .role(User.Role.ROLE_MEMBER)
                 .phone("+91 93922 46590")
                 .active(true)
+                .build(),
+
+            // ── MEMBER 4 ──
+            User.builder()
+                .name("Rizwan")
+                .email("Shaikmohammedshaikrizwan@gmail.com")
+                .password(passwordEncoder.encode("2002"))
+                .role(User.Role.ROLE_MEMBER)
+                .phone("")
+                .active(true)
                 .build()
         ));
-        log.info("✅ Default admin and member created");
+        log.info("✅ Admin + 4 members created successfully");
     }
 
     // ─────────────────────────────────────────────────

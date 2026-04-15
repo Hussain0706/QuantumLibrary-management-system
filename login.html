@@ -180,14 +180,8 @@
           </button>
         </form>
 
-        <div class="demo-hint" id="demoHint" style="font-size:.78rem;line-height:1.8;">
-          🔐 <strong>Admin:</strong> <code>admin@quantumlibrary.com</code> / <code>admin123</code><br>
-          👤 <strong>Member 1:</strong> <code>ali@library.com</code> / <code>ali123</code><br>
-          👤 <strong>Member 2:</strong> <code>sara@library.com</code> / <code>sara123</code><br>
-          👤 <strong>Member 3:</strong> <code>john@library.com</code> / <code>john123</code><br>
-          👤 <strong>Member 4:</strong> <code>zara@library.com</code> / <code>zara123</code><br>
-          <small style="color:var(--text-muted);">💡 Double-click to auto-fill admin or member credentials</small>
-        </div>
+        <!-- Demo hint hidden for production -->
+        <div id="demoHint" style="display:none;"></div>
       </div>
 
       <!-- Success screen -->
@@ -219,11 +213,13 @@
    *  role: 'member' → redirects to dashboard.html
    * ═══════════════════════════════════════════════════════ */
   const ACCOUNTS = [
-    { email: 'admin@quantumlibrary.com', password: 'admin123',  role: 'admin',  name: 'Admin'       },
-    { email: 'ali@library.com',          password: 'ali123',    role: 'member', name: 'Ali Ahmed'   },
-    { email: 'sara@library.com',         password: 'sara123',   role: 'member', name: 'Sara Khan'   },
-    { email: 'john@library.com',         password: 'john123',   role: 'member', name: 'John Smith'  },
-    { email: 'zara@library.com',         password: 'zara123',   role: 'member', name: 'Zara Malik'  },
+    // ── ADMIN ──
+    { email: '21x51a3235srecnandyal.edu.in',      password: 'hussain', role: 'admin',  name: 'Library Admin'          },
+    // ── MEMBERS ──
+    { email: 'shaiksaddambkr711@gmail.com',        password: '2004',    role: 'member', name: 'Saddam BKR'            },
+    { email: 'dudekulaasaduddin210@gmail.com',     password: '2003',    role: 'member', name: 'Asaduddin'             },
+    { email: 'hussain0706w@gmail.com',             password: '2004',    role: 'member', name: 'Hussain'               },
+    { email: 'shaikmohammedshaikrizwan@gmail.com', password: '2002',    role: 'member', name: 'Rizwan'                },
   ];
 
   /* ── Role switcher ── */
